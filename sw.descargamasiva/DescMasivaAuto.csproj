@@ -46,6 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ConexionBD.cs" />
     <Compile Include="DescargarSolicitud.cs" />
     <Compile Include="Encriptar.cs" />
     <Compile Include="VerificaSolicitud.cs" />

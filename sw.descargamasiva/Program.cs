@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -47,17 +48,22 @@ namespace sw.descargamasiva
         static string Bandera;
         static string TipoSolicitud;
 
+        static string valUuid;
+        static string valDocXml;
+        static string pathFinal = @"C:\Users\programador\Desktop\xmlMover";
+        //\\192.168.1.200\Intelisis\CE\ADD\No Validados\Egresos\Compras
 
+        static string rutaPrueba = @"C:\Users\programador\Desktop\xmlPrueba";
         static void Main(string[] args)
         {
-            for (int i = 1; i <= 4; i++)
-            {
-                ObtieneParametros(i);
-                Accion();
-                System.Threading.Thread.Sleep(20000);
-            }
+            //for (int i = 1; i <= 4; i++)
+            //{
+            //    ObtieneParametros(4);
+            //    Accion();
+            //    System.Threading.Thread.Sleep(20000);
+            //}
 
-
+            InsertaXml(rutaPrueba);
 
 
         }
@@ -128,10 +134,42 @@ namespace sw.descargamasiva
                 var dtR = DateTime.Today.AddDays(-DiasRecibe);
                 var dtFin = DateTime.Today.AddDays(-1);
 
-//valor 1 descarga xml recibidos / valor 2 Emitidos
+                //valida la fecha si es el ultimo dia del mes obtiene la descarga de 
+                //los dos ultimos meses
+                var Fecha_FinMes = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(1).AddDays(-1).ToString("dd-MM-yyyy");
+                var FechaSistema =  DateTime.Now.ToString("dd-MM-yyyy"); 
+
+                if (valor == 1 || valor == 2)
+                {
+                    if (FechaSistema == Fecha_FinMes)
+                    {
+                        //asigna fecha inicial 2 meses atras
+                        var Fecha_InicialMes = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(-1);
+                        dtE = Fecha_InicialMes;
+                        dtR = Fecha_InicialMes;
+                        dtFin = Convert.ToDateTime(Fecha_FinMes);
+                    }
+                }
+
+                if (valor == 3 || valor == 4)
+                {
+                    if (FechaSistema == Fecha_FinMes)
+                    {
+                        //asigna fecha inicial 2 meses atras
+                        var Fecha_InicialMes = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(-2);
+                        dtE = Fecha_InicialMes;
+                        dtR = Fecha_InicialMes;
+                        dtFin = Convert.ToDateTime(Fecha_FinMes);
+                    }
+                }
+
+
+
+                //valor 1 descarga xml recibidos / valor 2 Emitidos
                 if (valor == 1)
                 {
-                    
+                       
+
                     RfcEmisor = "";
                     RfcReceptor = valorRfc;
                     RfcSolicitante = RfcReceptor;
@@ -142,35 +180,35 @@ namespace sw.descargamasiva
 
                 }
                 else if (valor == 2)
-                    {
-                        RfcEmisor = valorRfc;
-                        RfcSolicitante = RfcEmisor;
-                        RfcReceptor = "";
-                        Bandera = "Emitidos";
-                        FechaInicial = String.Format("{0:yyyy-MM-dd}", dtE);
-                        PathXmlEmitido = pathDescargaEmitido;
-                        TipoSolicitud = "CFDI";
-                    }
-                    else if (valor == 3)
-                    {
-                        RfcEmisor = "";
-                        RfcReceptor = valorRfc;
-                        RfcSolicitante = RfcReceptor;
-                        Bandera = "MetadataRecibidos";
-                        FechaInicial = String.Format("{0:yyyy-MM-dd}", dtR);
-                        PathXmlRecibido = pathDescargaRecibido;
-                        TipoSolicitud = "Metadata";
-                    }
-                    else if (valor == 4)
-                    {
-                        RfcEmisor = valorRfc;
-                        RfcSolicitante = RfcEmisor;
-                        RfcReceptor = "";
-                        Bandera = "MetadataEmitidos";
-                        FechaInicial = String.Format("{0:yyyy-MM-dd}", dtE);
-                        PathXmlEmitido = pathDescargaEmitido;
-                        TipoSolicitud = "Metadata";
-                    }
+                {
+                    RfcEmisor = valorRfc;
+                    RfcSolicitante = RfcEmisor;
+                    RfcReceptor = "";
+                    Bandera = "Emitidos";
+                    FechaInicial = String.Format("{0:yyyy-MM-dd}", dtE);
+                    PathXmlEmitido = pathDescargaEmitido;
+                    TipoSolicitud = "CFDI";
+                }
+                else if (valor == 3)
+                {
+                    RfcEmisor = "";
+                    RfcReceptor = valorRfc;
+                    RfcSolicitante = RfcReceptor;
+                    Bandera = "MetadataRecibidos";
+                    FechaInicial = String.Format("{0:yyyy-MM-dd}", dtR);
+                    PathXmlRecibido = pathDescargaRecibido;
+                    TipoSolicitud = "Metadata";
+                }
+                else if (valor == 4)
+                {
+                    RfcEmisor = valorRfc;
+                    RfcSolicitante = RfcEmisor;
+                    RfcReceptor = "";
+                    Bandera = "MetadataEmitidos";
+                    FechaInicial = String.Format("{0:yyyy-MM-dd}", dtE);
+                    PathXmlEmitido = pathDescargaEmitido;
+                    TipoSolicitud = "Metadata";
+                }
                 password = valorRegistro;
                 FechaFinal = String.Format("{0:yyyy-MM-dd}", dtFin);
                
@@ -281,6 +319,7 @@ namespace sw.descargamasiva
         private static X509Certificate2 ObtenerX509Certificado(byte[] pfx, string semi)
         {
             Encriptar enc = new Encriptar();
+       
             return new X509Certificate2(pfx, enc.Decrypt(password, semi), X509KeyStorageFlags.MachineKeySet |
             //return new X509Certificate2(pfx, password, X509KeyStorageFlags.MachineKeySet |
                             X509KeyStorageFlags.PersistKeySet |
@@ -331,14 +370,41 @@ namespace sw.descargamasiva
                 }
                 if (Bandera == "MetadataEmitidos")
                 {
+                    if (string.IsNullOrEmpty(PathXmlEmitido))
+                    {
+                        PathXmlEmitido = @"C:\Archivo\xml\Metadata";
+                        if (!(Directory.Exists(PathXmlEmitido)))
+                        {
+                            DirectoryInfo di = Directory.CreateDirectory(PathXmlEmitido);
+                        }
 
+                        PathXml = PathXmlEmitido;
+                    }
+                    else
+                    {
+                        PathXml = PathXmlEmitido;
+                    }
                 }
                 if (Bandera == "MetadataRecibidos")
                 {
+                    if (string.IsNullOrEmpty(PathXmlRecibido))
+                    {
+                        PathXmlRecibido = @"C:\Archivo\xml\Metadata";
+                        if (!(Directory.Exists(PathXmlRecibido)))
+                        {
+                            DirectoryInfo di = Directory.CreateDirectory(PathXmlRecibido);
+                        }
+
+                        PathXml = PathXmlRecibido;
+                    }
+                    else
+                    {
+                        PathXml = PathXmlRecibido;
+                    }
 
                 }
 
-                    if (!(Directory.Exists(PathXml)))
+                if (!(Directory.Exists(PathXml)))
                 {
                     Directory.CreateDirectory(PathXml);
                 }
@@ -353,6 +419,27 @@ namespace sw.descargamasiva
                 Console.WriteLine("FileCreated: " + PathXml + idPaquete + ".zip");
 
                 Descomprimir(PathXml + idPaquete + ".zip", PathXml);
+                try
+                {
+                    //inserta xml en tabla xmlDoc
+                    if (Bandera == "Recibidos" || Bandera == "Emitidos")
+                    {
+                        //metodo para insertar datos a la tabla xmlDoc
+                        InsertaXml(PathXml);
+                    }
+                   
+                    if (Bandera == "MetadataRecibidos" || Bandera == "MetadataEmitidos")
+                    {
+                        //Inserta la metadata a la bd 
+                        string rutaMetadata = "";
+                        rutaMetadata = PathXml + idPaquete + ".txt";
+                        InstertaMetadata(rutaMetadata);
+                    }
+
+                }catch(Exception ee)
+                {
+                    Console.WriteLine("General Error: " + ee.Message);
+                }
             }
             catch (Exception e)
             {
@@ -418,7 +505,152 @@ namespace sw.descargamasiva
            
         }
 
-       
-        
+       public static void InstertaMetadata(string rutaArchivo)
+        {
+            try
+            {
+                //Inserta datos a la BD
+                ConexionBD oCone = new ConexionBD();
+
+                oCone.ExecuteSP1("spCFDIDescargaMetadata",
+                              new SqlParameter("@ruta", rutaArchivo));
+                              //new SqlParameter("@Param2", /* Tu valor */),
+                              //new SqlParameter("@Param3", /* Tu valor */),
+                              //new SqlParameter("@Param4", /* Tu valor */));
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Security error.\n\nError message: {e.Message}\n\n" +
+                   $"Details:\n\n{e.StackTrace}");
+            }
+        }
+
+        public static void InsertaXml(string rutaCarpeta)
+        {
+            int contador = 0;
+            try
+            {
+
+                DirectoryInfo di = new DirectoryInfo(@rutaCarpeta);
+
+                //For que va recorriendo los archivos obtenidos de la carpeta seleccionada
+                foreach (var item in di.GetFiles())
+                {
+                    string nomArchivo = "";
+                    string rutaArchivo = "";
+                    string extension = "";
+
+
+                    //obtiene la extencion del archivo
+                    extension = Path.GetExtension(item.Name);
+                    //Valida los archivos que solo sean  XML
+                    if (extension == ".xml")
+                    {
+                  
+                        rutaArchivo = @rutaCarpeta + @"\" + (nomArchivo = item.Name);
+                        //agregar funcionabilidad de extraccion de uuid
+                        ExtraccionUuid(rutaArchivo, nomArchivo);
+
+
+                        contador = contador + 1;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Solo se permiten archivos XML");
+                        //break;
+                    }
+
+
+                }
+
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Security error.\n\nError message: {e.Message}\n\n" +
+                   $"Details:\n\n{e.StackTrace}");
+            }
+        }
+
+        public static void ExtraccionUuid(string RutaArchi, string NombreArch)
+        {
+            //Metodo para obtener el xml y guardarlo en la variable valDocXml
+            UsingXMLReader(RutaArchi);
+            try
+            {
+                //Inserta datos a la BD
+                ConexionBD oDatosRecupera = new ConexionBD();
+                oDatosRecupera.InsertaTabla(valDocXml, valUuid);
+
+                //ValidaDirectorioFinal();
+
+
+                //Mueve el archivo 
+                if ((valDocXml != null) || (valDocXml != ""))
+                {
+
+                    string archivoFinal = pathFinal + NombreArch;
+
+                    if (Directory.Exists(pathFinal))
+                    {
+                        MoverArchivo(RutaArchi, archivoFinal);
+                    }
+                    else
+                    {
+                        Directory.CreateDirectory(pathFinal);
+                        MoverArchivo(RutaArchi, archivoFinal);
+                    }
+
+                }
+                //MessageBox.Show("Uuid : " + valUuid);
+                //LlenaGrid();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Security error.\n\nError message: {e.Message}\n\n" +
+                    $"Details:\n\n{e.StackTrace}");
+            }
+        }
+        public static void UsingXMLReader(string path)
+        {
+            try
+            {
+                XmlDocument doc = new XmlDocument();
+                doc.Load(path);
+                XmlNodeList xTimbreFiscalDigital = doc.GetElementsByTagName("tfd:TimbreFiscalDigital");
+                valDocXml = doc.OuterXml;
+
+
+               
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Error :" + e);
+            }
+        }
+
+        public static void MoverArchivo(string rutaIni, string rutaFin)
+        {
+
+            try
+            {
+                if (File.Exists(rutaFin))
+                {
+
+                }
+                else
+                {
+                    //File.Copy(rutaIni, rutaFin);
+                    //File.Move(rutaIni, rutaFin); 
+                    System.IO.File.Move(rutaIni, rutaFin);
+                }
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Error : " + e.Message);
+            }
+        }
+
     }
 }
